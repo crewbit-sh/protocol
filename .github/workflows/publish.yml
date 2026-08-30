@@ -22,12 +22,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - id: gate
-        run: node scripts/publish-gate.mjs >> "$GITHUB_OUTPUT"
+        run: node scripts/publish-gate.mjs
 
   publish:
     needs: build-test
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - run: npm install
+      - run: npm ci
       - run: npm run build
       # CHANGELOG.md is the source of the version. This is the one place it
       # reaches package.json, and it is never committed back.
