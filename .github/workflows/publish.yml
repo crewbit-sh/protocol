@@ -7,9 +7,10 @@ name: publish
 on:
   workflow_dispatch: {}
 
+# id-token: write is only for the provenance attestation `npm publish` makes,
+# which only the publish job runs. build-test never needs it.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-test:
@@ -34,7 +35,7 @@ jobs:
     if: needs.build-test.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +48,22 @@ jobs:
       # CHANGELOG.md is the source of the version. This is the one place it
       # reaches package.json, and it is never committed back.
       - run: npm version "${{ needs.build-test.outputs.version }}" --no-git-tag-version --allow-same-version
+      # A cheap check against publishing the wrong files: prints exactly what
+      # `files: ["dist", "docs"]` in package.json packs, before it is real.
+      - run: npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Record only, not a gate: the decision already happened in the gate
+      # step, comparing against the CHANGELOG. Pushed after npm publish
+      # answers success, so this never exists for a version that did not
+      # actually go out, and it is the only durable answer later to "which
+      # commit did 1.0.0 on npm come from" once main has moved on.
+      - name: tag the commit this version published from
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ needs.build-test.outputs.version }}"
+          git push origin "v${{ needs.build-test.outputs.version }}"

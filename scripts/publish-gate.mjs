@@ -27,10 +27,14 @@ let published;
 try {
   published = execSync(`npm view ${pkg.name} version`, {
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
+    stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-} catch {
-  published = undefined; // the package has never been published
+} catch (error) {
+  // Only a package that has never been published looks like this. Anything
+  // else — a network blip, a registry timeout, a bad token — must fail the
+  // step rather than read as "nothing to compare against, so publish".
+  if (!/\bE404\b/.test(String(error.stderr ?? ""))) throw error;
+  published = undefined;
 }
 
 const shouldPublish = !published || compare(version, published) > 0;
