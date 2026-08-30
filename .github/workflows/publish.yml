@@ -1,0 +1,52 @@
+name: publish
+
+# Manual on purpose, for now: the NPM_TOKEN secret does not exist on this repo
+# yet, the npm org has not been created, and 1.0.0 is held pending a check with
+# the team shipping the runner. Switch the trigger to `push: branches: [main]`
+# once all three are settled and the releaser has reviewed this file.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.gate.outputs.version }}
+      should_publish: ${{ steps.gate.outputs.should_publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - id: gate
+        run: node scripts/publish-gate.mjs >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: build-test
+    if: needs.build-test.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+      - run: npm run build
+      # CHANGELOG.md is the source of the version. This is the one place it
+      # reaches package.json, and it is never committed back.
+      - run: npm version "${{ needs.build-test.outputs.version }}" --no-git-tag-version --allow-same-version
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
