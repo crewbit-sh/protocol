@@ -45,7 +45,14 @@ jobs:
       - run: npm run build
       - run: npm version "${{ needs.build-test.outputs.version }}" --no-git-tag-version --allow-same-version
       - run: npm publish --dry-run
-      - run: npm publish --provenance --access public
+      # No --provenance and no NODE_AUTH_TOKEN: this package is registered on
+      # npm for trusted publishing from this workflow, so npm authenticates
+      # over OIDC (which is what permissions: id-token: write above is for)
+      # and attaches the provenance attestation itself. Adding --provenance
+      # back here would be redundant, not a fix for a missing one — if a
+      # publish ever needs it added back, the trusted publisher config on
+      # npmjs.com is what to check first, not this file.
+      - run: npm publish --access public
       - name: tag the commit this version published from
         run: |
           git config user.name "github-actions[bot]"
