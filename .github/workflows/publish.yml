@@ -1,16 +1,11 @@
 name: publish
 
-# Manual on purpose, for now: the NPM_TOKEN secret does not exist on this repo
-# yet, the npm org has not been created, and 1.0.0 is held pending a check with
-# the team shipping the runner. Switch the trigger to `push: branches: [main]`
-# once all three are settled and the releaser has reviewed this file.
 on:
   workflow_dispatch: {}
 
-# id-token: write is only for the provenance attestation `npm publish` makes,
-# which only the publish job runs. build-test never needs it.
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build-test:
@@ -19,10 +14,12 @@ jobs:
       version: ${{ steps.gate.outputs.version }}
       should_publish: ${{ steps.gate.outputs.should_publish }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -38,29 +35,17 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
       - run: npm ci
       - run: npm run build
-      # CHANGELOG.md is the source of the version. This is the one place it
-      # reaches package.json, and it is never committed back.
       - run: npm version "${{ needs.build-test.outputs.version }}" --no-git-tag-version --allow-same-version
-      # A cheap check against publishing the wrong files: prints exactly what
-      # `files: ["dist", "docs"]` in package.json packs, before it is real.
       - run: npm publish --dry-run
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # Record only, not a gate: the decision already happened in the gate
-      # step, comparing against the CHANGELOG. Pushed after npm publish
-      # answers success, so this never exists for a version that did not
-      # actually go out, and it is the only durable answer later to "which
-      # commit did 1.0.0 on npm come from" once main has moved on.
       - name: tag the commit this version published from
         run: |
           git config user.name "github-actions[bot]"
