@@ -17,3 +17,21 @@ describe("this package depends on nothing at all", () => {
     expect(pkg.dependencies).toBeUndefined();
   });
 });
+
+/**
+ * #1: `JobEvent` is a type, so it leaves no runtime trace to check `dist`
+ * against - the source is what a reader and this test both have.
+ */
+describe("JobEvent's public surface", () => {
+  const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
+
+  test("names the two kinds the wire gained", () => {
+    expect(types).toContain('t: "tool_result"');
+    expect(types).toContain('t: "thinking"');
+  });
+
+  test("other stays, marked deprecated rather than removed", () => {
+    const comment = /\/\*\*([\s\S]*?)\*\/\s*\|\s*\{ t: "other"; raw: unknown \}/.exec(types)?.[1];
+    expect(comment).toMatch(/@deprecated/);
+  });
+});

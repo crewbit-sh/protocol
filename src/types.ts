@@ -135,9 +135,12 @@ export type JobStatus = "accepted" | "preparing" | "working" | "finalizing";
 export type JobStatusParams = { jobId: string; status: JobStatus; detail?: string };
 
 /**
- * Event kinds are open. A runner passes through whatever its engine emits, and
- * anything unrecognised arrives as `other` for the server to store without
- * interpreting.
+ * Event kinds are open: a runner passes through whatever its engine emits. #1
+ * moved the two that used to arrive this way onto their own shapes -
+ * `tool_result` and `thinking` - because a tool result is the target
+ * repository's own contents and cost more to send, store and read than
+ * everything else in a transcript combined. `other` is what is left for
+ * whatever neither of those covers.
  */
 export type JobEvent =
   | { t: "assistant"; text: string }
@@ -148,6 +151,15 @@ export type JobEvent =
    * undocumented: absent means unknown, never means fine.
    */
   | { t: "rate_limit"; rateLimitType: string; resetsAt: number; status?: string }
+  /** The first 200 characters of a tool result; the runner's own `raw` never leaves it. */
+  | { t: "tool_result"; text: string; isError: boolean }
+  /** The first 200 characters of an assistant line that carried only a thinking block. */
+  | { t: "thinking"; text: string }
+  /**
+   * @deprecated a tool result and a thinking-only line arrive as `tool_result`
+   * and `thinking` now. Kept so a runner older than the release that stopped
+   * sending it is still on the wire, and the server keeps storing it.
+   */
   | { t: "other"; raw: unknown };
 
 export type JobEventParams = {

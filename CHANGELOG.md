@@ -22,6 +22,21 @@ Anything else that changes a field's meaning without changing
 `PROTOCOL_VERSION` is a defect in this file's own rule, not a version by
 itself.
 
+## 1.1.0
+
+### Added
+
+- `JobEvent` gains `tool_result` (`text`, `isError`) and `thinking` (`text`),
+  each carrying the first 200 characters: what a `--print` engine's tool
+  results and thinking-only lines used to leave the wire as, `{ t: "other",
+  raw }`, in full
+
+### Deprecated
+
+- `other` stays in the union - a runner on an earlier release may still send
+  it, and the server keeps storing it - but a tool result or a thinking-only
+  line is `tool_result` or `thinking` from here on, never `other`
+
 ## 1.0.0
 
 First publication of the protocol as its own package. JSON-RPC 2.0 over one

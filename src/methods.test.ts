@@ -118,6 +118,13 @@ describe("runner to server", () => {
         { t: "assistant", text: "writing the failing test" },
         { t: "tool_use", name: "Edit", summary: "src/auth.ts" },
         { t: "rate_limit", rateLimitType: "five_hour", resetsAt: 1786168200 },
+        // #1: the two kinds the wire gained, replacing what used to leave as
+        // `other, raw` - a tool result and a thinking-only assistant line.
+        { t: "tool_result", text: "PASS src/auth.test.ts", isError: false },
+        { t: "thinking", text: "the test needs a fixed clock" },
+        // Still on the wire, and still accepted: an older runner may send it
+        // for a release or two yet, and the server keeps storing it.
+        { t: "other", raw: { unrecognised: true } },
       ],
     });
 
