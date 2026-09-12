@@ -68,7 +68,7 @@ export type Harness = {
   allowedTools?: string[];
   permissionMode?: string;
   model?: string;
-  maxTurns: number;
+  maxTurns?: number;
   maxBudgetUsd?: number;
   /**
    * What the checkout needs before anything runs in it, usually installing

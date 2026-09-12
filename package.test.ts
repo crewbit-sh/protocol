@@ -35,3 +35,11 @@ describe("JobEvent's public surface", () => {
     expect(comment).toMatch(/@deprecated/);
   });
 });
+
+describe("Harness's maxTurns", () => {
+  const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
+
+  test("is optional, so a runner falls back to its own default when a caller omits it", () => {
+    expect(types).toContain("maxTurns?: number;");
+  });
+});
