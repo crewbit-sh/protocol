@@ -22,6 +22,17 @@ Anything else that changes a field's meaning without changing
 `PROTOCOL_VERSION` is a defect in this file's own rule, not a version by
 itself.
 
+## 1.2.0
+
+### Changed
+
+- `Harness.maxTurns` is optional. Omitting it hands the ceiling to the runner
+  rather than asking for a run without one: the runner applies whatever its
+  engine defaults to, and a stop is reported against that. A runner reading a
+  harness has to tolerate the field's absence from this release on; a server
+  already sending it can carry on sending it, and nothing about that case
+  changes.
+
 ## 1.1.0
 
 ### Added
