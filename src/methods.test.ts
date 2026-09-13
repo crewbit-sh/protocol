@@ -107,6 +107,33 @@ describe("runner to server", () => {
     expect(seen).toEqual(["working"]);
   });
 
+  /**
+   * cli#37/protocol#3: a status sent as a request instead, so the server has a
+   * channel back to hand over a fresh grant before this Job's own expires.
+   */
+  test("status sent as a request comes back with a fresh grant when the server has one", async () => {
+    const grant = {
+      url: "https://github.com/acme/api.git",
+      baseBranch: "main",
+      branch: "crewbit/spec-97",
+      token: "refreshed-token",
+      tokenExpiresAt: "2026-09-13T18:00:00Z",
+    };
+    const { runnerPeer } = wire({ "job.status": () => ({ grant }) }, {});
+
+    const result = await runnerPeer.request("job.status", { jobId: "job_1", status: "working" });
+
+    expect(result).toEqual({ grant });
+  });
+
+  test("status sent as a request comes back empty when the server has nothing to hand over", async () => {
+    const { runnerPeer } = wire({ "job.status": () => ({}) }, {});
+
+    const result = await runnerPeer.request("job.status", { jobId: "job_1", status: "working" });
+
+    expect(result).toEqual({});
+  });
+
   test("events arrive batched, with a sequence the server can order by", () => {
     const batches: number[] = [];
     const { runnerPeer } = wire({ "job.event": (p) => void batches.push(p.seq) }, {});

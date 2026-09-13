@@ -43,3 +43,20 @@ describe("Harness's maxTurns", () => {
     expect(types).toContain("maxTurns?: number;");
   });
 });
+
+/**
+ * protocol#3: `job.status`'s result gains an optional grant, so the runner's
+ * own keepalive can carry a fresh one back before the current one expires.
+ */
+describe("job.status's result", () => {
+  const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
+
+  test("names JobStatusResult, carrying an optional grant", () => {
+    expect(types).toContain("export type JobStatusResult = { grant?: RepoGrant }");
+  });
+
+  test("RunnerCalls wires job.status to it rather than to void", () => {
+    const entry = /"job\.status":\s*\{[^}]*\}/.exec(types)?.[0] ?? "";
+    expect(entry).toContain("result: JobStatusResult");
+  });
+});

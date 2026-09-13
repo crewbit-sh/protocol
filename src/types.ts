@@ -135,6 +135,13 @@ export type JobStatus = "accepted" | "preparing" | "working" | "finalizing";
 export type JobStatusParams = { jobId: string; status: JobStatus; detail?: string };
 
 /**
+ * protocol#3: absent for a server with nothing to hand over - an old one, or
+ * a current grant not yet close to expiring - never a reason to refuse the
+ * call. Present, it is the grant to check out with from here on.
+ */
+export type JobStatusResult = { grant?: RepoGrant };
+
+/**
  * Event kinds are open: a runner passes through whatever its engine emits. #1
  * moved the two that used to arrive this way onto their own shapes -
  * `tool_result` and `thinking` - because a tool result is the target
@@ -214,8 +221,13 @@ export type RunnerCalls = {
    */
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
   "runner.alive": { params: Record<string, never>; result: void };
-  // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
-  "job.status": { params: JobStatusParams; result: void };
+  /**
+   * protocol#3: sent as a notification by a runner with nothing to ask for,
+   * and as a request by one reading `result.grant` back - `RpcPeer#handleCall`
+   * answers either the same way, from the same handler, so a server needs no
+   * version check to support both at once.
+   */
+  "job.status": { params: JobStatusParams; result: JobStatusResult };
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
   "job.event": { params: JobEventParams; result: void };
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
