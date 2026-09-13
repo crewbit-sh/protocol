@@ -22,6 +22,18 @@ Anything else that changes a field's meaning without changing
 `PROTOCOL_VERSION` is a defect in this file's own rule, not a version by
 itself.
 
+## 1.3.0
+
+### Added
+
+- `job.status` answers `JobStatusResult`, `{ grant?: RepoGrant }`, where it
+  answered nothing at all. A runner with nothing to ask for still sends it as a
+  notification and reads no result; one that wants a fresh checkout grant sends
+  the same call as a request and reads `result.grant` back. A server from
+  before this release answers `{"result": null}`, which reads as a grant being
+  absent rather than as a refusal, so neither side has to know which release
+  the other is on.
+
 ## 1.2.0
 
 ### Changed
