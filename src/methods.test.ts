@@ -96,7 +96,15 @@ describe("runner to server", () => {
 
   test("status is a notification and expects no reply", () => {
     const seen: string[] = [];
-    const { runnerPeer } = wire({ "job.status": (p) => void seen.push(p.status) }, {});
+    const { runnerPeer } = wire(
+      {
+        "job.status": (p) => {
+          seen.push(p.status);
+          return {};
+        },
+      },
+      {},
+    );
 
     runnerPeer.notify("job.status", {
       jobId: "job_1",

@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "prepublishOnly": "node scripts/guard-placeholder-version.mjs"
   },
   "devDependencies": {

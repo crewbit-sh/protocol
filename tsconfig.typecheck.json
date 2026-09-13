@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // `tsconfig.json`'s own `rootDir: "src"` is right for the build, which
+    // never sees a root-level file. This config also covers `package.test.ts`
+    // and `typecheck.test.ts`, both outside `src`, so the root they share is
+    // the repository root.
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "*.test.ts"],
+  "exclude": ["dist"]
+}
