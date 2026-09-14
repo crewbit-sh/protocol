@@ -60,3 +60,20 @@ describe("job.status's result", () => {
     expect(entry).toContain("result: JobStatusResult");
   });
 });
+
+/**
+ * #328: a rebase Job starts no engine, so `prompt` - the one field every
+ * other Job required - has to become optional for `rebase` to be legal
+ * without one.
+ */
+describe("Harness's rebase", () => {
+  const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
+
+  test("prompt is optional, so a Job with no engine needs none", () => {
+    expect(types).toContain("prompt?: string;");
+  });
+
+  test("is a bare marker, not a second place to name the base repo.baseBranch already does", () => {
+    expect(types).toContain("rebase?: true;");
+  });
+});

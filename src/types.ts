@@ -64,7 +64,8 @@ export type RepoGrant = {
 };
 
 export type Harness = {
-  prompt: string;
+  /** Required for every Job except a `rebase` one, which starts no engine to prompt. */
+  prompt?: string;
   allowedTools?: string[];
   permissionMode?: string;
   model?: string;
@@ -88,6 +89,16 @@ export type Harness = {
    * green it did not get, which is the fraud the eval stage exists to catch.
    */
   verify?: { command: string; timeoutSeconds?: number };
+  /**
+   * #328: a Job with no engine at all. `true`, the runner starts nothing -
+   * `prompt` and every other field here go unread - and the whole of its work
+   * is `git rebase` the delivered branch onto `repo.baseBranch`, the same
+   * base every other Job's own `RepoGrant` already names, pushed with the
+   * same lease as any other push. `job.complete` reports zero turns and zero
+   * cost, the same as a Job that never ran an engine because it had none to
+   * run.
+   */
+  rebase?: true;
 };
 
 /**
