@@ -22,6 +22,19 @@ Anything else that changes a field's meaning without changing
 `PROTOCOL_VERSION` is a defect in this file's own rule, not a version by
 itself.
 
+## 1.4.0
+
+### Added
+
+- `Harness.rebase`, `true` for a Job that starts no engine at all: the whole of
+  its work is rebasing the delivered branch onto `repo.baseBranch`, pushed with
+  the same lease as any other push, and `job.complete` reports zero turns and
+  zero cost. A runner that does not know the field runs the Job as it would any
+  other, which is why it arrives with `prompt` still set for one that does.
+- `Harness.prompt` is optional, because a `rebase` Job has no engine to prompt.
+  Every other Job still carries one, and a runner reading a harness without
+  `rebase` can rely on it exactly as before.
+
 ## 1.3.0
 
 ### Added
