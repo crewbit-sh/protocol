@@ -10,10 +10,8 @@ type Calls = {
   log: { params: { line: string }; result: void };
 };
 
-/** The side that only answers, like a runner that never calls back. */
 type NoCalls = Record<never, MethodSpec>;
 
-/** Two peers wired to each other in memory: no socket, no port, no timing. */
 function link(handlers: Handlers<Calls>) {
   const toServer: string[] = [];
   const toClient: string[] = [];
@@ -152,16 +150,6 @@ describe("RpcPeer", () => {
   });
 });
 
-/**
- * One peer with a transport the test owns, for the frames a linked pair cannot
- * produce and the writes a working socket never refuses.
- *
- * The two promises are the seams. `written` settles on the transport being
- * handed a frame, because answering a request goes through the handler and a
- * handler is awaited. `reported` settles on the first `onError`, which is where
- * every path that answers nobody ends: a notification has no id to reply to,
- * and a response that cannot be written has nowhere else to go.
- */
 function peer(send?: (frame: string) => void) {
   const sent: string[] = [];
   const errors: Error[] = [];
@@ -226,12 +214,7 @@ describe("a frame that is neither a call nor a response", () => {
     expect(errors.map((error) => (error as RpcError).code)).toEqual([-32600, -32600, -32600]);
   });
 
-  /**
-   * JSON-RPC 2.0 permits a string id. This peer numbers its own and settles
-   * nothing else, so a spec-compliant peer that uses string ids is one it
-   * cannot talk to: every reply would arrive as this error instead of the
-   * answer somebody is waiting for.
-   */
+  /** JSON-RPC 2.0 permits a string id; this peer settles only the numeric ids it issued. */
   test("a response whose id is a string is not one this peer can settle", () => {
     const { rpc, errors } = peer();
 
@@ -241,7 +224,6 @@ describe("a frame that is neither a call nor a response", () => {
     expect(errors[0]?.message).toContain("neither a call nor a response");
   });
 
-  /** The quoted frame is bounded, so one enormous payload cannot become the log. */
   test("is quoted at a length somebody can read", () => {
     const { rpc, errors } = peer();
 
@@ -252,12 +234,6 @@ describe("a frame that is neither a call nor a response", () => {
   });
 });
 
-/**
- * A notification has no id, so there is no frame that could carry the failure
- * back. Answering one anyway would put an error frame with no id on the wire,
- * which the other side classifies as neither a call nor a response: it reports
- * an error of its own and the original is still lost.
- */
 describe("a notification that cannot be handled", () => {
   test("an unknown method is reported here rather than answered", async () => {
     const { rpc, sent, reported } = peer();
@@ -279,11 +255,6 @@ describe("a notification that cannot be handled", () => {
 });
 
 describe("answering a request", () => {
-  /**
-   * `JSON.stringify` drops a key whose value is `undefined`, so a handler that
-   * returns nothing would otherwise answer with a frame carrying neither
-   * `result` nor `error`, which is not a response any peer has to accept.
-   */
   test("a handler that returns nothing still answers with a result", async () => {
     const { rpc, written } = peer();
 
@@ -312,11 +283,6 @@ describe("a request whose frame never left", () => {
     expect((error as Error).message).toBe("socket is closed");
   });
 
-  /**
-   * The reply is what proves it: id 1 was spent on a frame that never left, so
-   * nothing may still be waiting on it. An entry left behind would swallow this
-   * silently, and the peer would answer a stranger's response as its own.
-   */
   test("leaves nothing behind waiting for a reply to it", async () => {
     const { rpc, errors } = peer(refusing("socket is closed"));
     await rpc.request("math.add", { a: 1, b: 1 }).catch(() => {});

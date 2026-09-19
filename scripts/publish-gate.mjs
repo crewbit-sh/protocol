@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 /**
- * CHANGELOG.md is the source of the version, not package.json. This reads the
- * top `## X.Y.Z` heading, compares it against what npm already has published,
- * and says whether this is a version worth publishing.
- *
- * Nothing here bumps package.json by hand: the publish step sets it
- * transiently, right before `npm publish`, and that change is never
- * committed.
+ * The version comes from CHANGELOG.md: package.json holds a placeholder that the
+ * publish workflow sets right before `npm publish` and never commits.
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
@@ -30,9 +25,6 @@ try {
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 } catch (error) {
-  // Only a package that has never been published looks like this. Anything
-  // else — a network blip, a registry timeout, a bad token — must fail the
-  // step rather than read as "nothing to compare against, so publish".
   if (!/\bE404\b/.test(String(error.stderr ?? ""))) throw error;
   published = undefined;
 }

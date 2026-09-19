@@ -1,11 +1,3 @@
-/**
- * protocol#2: `tsconfig.json`'s own `include`/`exclude` never reached a test
- * file, so a type error inside one - the shape measured while working
- * protocol#1 - passed `tsc --noEmit` and `vitest run` alike. `typecheck`
- * now runs against `tsconfig.typecheck.json` instead, and this is what
- * proves that config actually looks: `fixtures/typecheck-error/` is kept
- * broken on purpose, checked by nothing else, for exactly this.
- */
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
 

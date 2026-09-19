@@ -1,10 +1,3 @@
-/**
- * This is what a consumer trusts by installing a wire-format package rather
- * than vendoring it: that it cannot drag anything else in. crewbit-v2 checked
- * the same fact about this package while it lived in that monorepo
- * (`test/boundary.test.ts`); that check could not survive the extraction, and
- * this is where the guarantee lives now.
- */
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
@@ -18,10 +11,6 @@ describe("this package depends on nothing at all", () => {
   });
 });
 
-/**
- * #1: `JobEvent` is a type, so it leaves no runtime trace to check `dist`
- * against - the source is what a reader and this test both have.
- */
 describe("JobEvent's public surface", () => {
   const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
 
@@ -44,10 +33,6 @@ describe("Harness's maxTurns", () => {
   });
 });
 
-/**
- * protocol#3: `job.status`'s result gains an optional grant, so the runner's
- * own keepalive can carry a fresh one back before the current one expires.
- */
 describe("job.status's result", () => {
   const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
 
@@ -61,11 +46,6 @@ describe("job.status's result", () => {
   });
 });
 
-/**
- * #328: a rebase Job starts no engine, so `prompt` - the one field every
- * other Job required - has to become optional for `rebase` to be legal
- * without one.
- */
 describe("Harness's rebase", () => {
   const types = readFileSync(new URL("src/types.ts", import.meta.url), "utf8");
 

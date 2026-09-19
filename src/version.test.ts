@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { PROTOCOL_VERSION } from "./types.ts";
 
-/**
- * CHANGELOG.md, not package.json: the version in the manifest is a
- * placeholder until the publish workflow sets it transiently, so the
- * checked-in source of truth is the top heading here.
- */
+/** Not package.json: its version is a placeholder the publish workflow sets transiently. */
 function changelogVersion(): string {
   const changelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
   const heading = changelog.match(/^##\s+(\d+)\.\d+\.\d+\s*$/m);

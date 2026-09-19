@@ -1,10 +1,3 @@
-/**
- * The eight methods, round-tripped through two peers wired to each other. This
- * is what proves the two direction maps are complete and agree: a method the
- * server can call that the runner cannot answer fails to compile, and one whose
- * payload drifts fails here.
- */
-
 import { describe, expect, test } from "vitest";
 import { type Handlers, RpcPeer } from "./jsonrpc.ts";
 import {
@@ -115,10 +108,6 @@ describe("runner to server", () => {
     expect(seen).toEqual(["working"]);
   });
 
-  /**
-   * cli#37/protocol#3: a status sent as a request instead, so the server has a
-   * channel back to hand over a fresh grant before this Job's own expires.
-   */
   test("status sent as a request comes back with a fresh grant when the server has one", async () => {
     const grant = {
       url: "https://github.com/acme/api.git",
@@ -153,12 +142,8 @@ describe("runner to server", () => {
         { t: "assistant", text: "writing the failing test" },
         { t: "tool_use", name: "Edit", summary: "src/auth.ts" },
         { t: "rate_limit", rateLimitType: "five_hour", resetsAt: 1786168200 },
-        // #1: the two kinds the wire gained, replacing what used to leave as
-        // `other, raw` - a tool result and a thinking-only assistant line.
         { t: "tool_result", text: "PASS src/auth.test.ts", isError: false },
         { t: "thinking", text: "the test needs a fixed clock" },
-        // Still on the wire, and still accepted: an older runner may send it
-        // for a release or two yet, and the server keeps storing it.
         { t: "other", raw: { unrecognised: true } },
       ],
     });

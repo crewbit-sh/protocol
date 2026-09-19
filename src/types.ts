@@ -1,10 +1,4 @@
-/**
- * Message shapes for the runner protocol. The normative spec is docs/protocol/;
- * this file carries only what P0 implements, which is four of the eight
- * methods. Fields that exist only for leases and reconnect arrive in P3, and
- * adding optional fields is a compatible change within v1.
- */
-
+/** Adding an optional field is a compatible change within a version. */
 export const PROTOCOL_VERSION = "v1";
 
 export type Stage = "plan" | "code" | "pr" | "eval";
@@ -20,7 +14,6 @@ export type DeclineReason =
 
 export type JobOutcome = "complete" | "not_ready" | "too_big" | "partial" | "failed";
 
-/** What a reconnecting runner still holds, so the server can say where to resume. */
 export type ActiveJob = { jobId: string; lastSeq: number };
 
 export type HelloParams = {
@@ -36,9 +29,8 @@ export type HelloParams = {
 };
 
 /**
- * `stillMine: false` means the lease expired and the Job was re-dispatched.
- * The runner stops and reports nothing: another runner may already hold it, and
- * two completions for one `jobId` is the one thing the store must never accept.
+ * `stillMine: false` means the lease expired and the Job was re-dispatched: the
+ * runner stops and reports nothing, since another runner may already hold it.
  */
 export type ResumePoint = { jobId: string; ackedSeq: number; stillMine: boolean };
 
@@ -54,7 +46,7 @@ export type HelloResult =
 
 export type ReadyParams = { slots: number };
 
-/** A repository-scoped, short-lived grant. Absent in P0: there is no git yet. */
+/** `token` is scoped to this one repository. */
 export type RepoGrant = {
   url: string;
   baseBranch: string;
@@ -73,43 +65,19 @@ export type Harness = {
   maxBudgetUsd?: number;
   /**
    * What the checkout needs before anything runs in it, usually installing
-   * dependencies.
-   *
-   * Its own field rather than the front of `verify`, because a prepare that
-   * fails is the environment failing and a verify that fails is the change
-   * failing, and a fix round told the wrong one changes the wrong thing. It also
-   * belongs to every stage that builds, not only the one that checks: the code
-   * stage was buying it with turns from its own ceiling.
+   * dependencies. Its failure is the environment failing, where a `verify`
+   * failure is the change failing.
    */
   prepare?: { command: string; timeoutSeconds?: number };
-  /**
-   * A command the runner runs itself, before the engine and outside it.
-   *
-   * An agent asked to run the tests and report is an agent that can report a
-   * green it did not get, which is the fraud the eval stage exists to catch.
-   */
+  /** A command the runner runs itself, before the engine and outside it. */
   verify?: { command: string; timeoutSeconds?: number };
   /**
-   * #328: a Job with no engine at all. `true`, the runner starts nothing -
-   * `prompt` and every other field here go unread - and the whole of its work
-   * is `git rebase` the delivered branch onto `repo.baseBranch`, the same
-   * base every other Job's own `RepoGrant` already names, pushed with the
-   * same lease as any other push. `job.complete` reports zero turns and zero
-   * cost, the same as a Job that never ran an engine because it had none to
-   * run.
+   * `true`: the runner starts no engine and reads no other field here. The whole
+   * Job is rebasing the delivered branch onto `repo.baseBranch` and pushing it.
    */
   rebase?: true;
 };
 
-/**
- * What the runner collects from the workspace, and what each file means.
- *
- * The mapping is declared by the server so the runner stays generic: it applies
- * it without knowing what a plan is, and a new Stage needs no runner change.
- * `outcomes` is ordered and the first match wins, so refusals are listed before
- * success: an agent that hedges by writing both is signalling doubt, and the
- * conservative reading costs a human a minute instead of a review cycle.
- */
 export type ArtifactSpec = {
   /** Filenames to read back from the workspace, if present. */
   collect: string[];
@@ -146,27 +114,17 @@ export type JobStatus = "accepted" | "preparing" | "working" | "finalizing";
 export type JobStatusParams = { jobId: string; status: JobStatus; detail?: string };
 
 /**
- * protocol#3: absent for a server with nothing to hand over - an old one, or
- * a current grant not yet close to expiring - never a reason to refuse the
- * call. Present, it is the grant to check out with from here on.
+ * Absent when the server has nothing to hand over, which is never a reason to
+ * refuse the call. Present, it is the grant to check out with from here on.
  */
 export type JobStatusResult = { grant?: RepoGrant };
 
-/**
- * Event kinds are open: a runner passes through whatever its engine emits. #1
- * moved the two that used to arrive this way onto their own shapes -
- * `tool_result` and `thinking` - because a tool result is the target
- * repository's own contents and cost more to send, store and read than
- * everything else in a transcript combined. `other` is what is left for
- * whatever neither of those covers.
- */
 export type JobEvent =
   | { t: "assistant"; text: string }
   | { t: "tool_use"; name: string; summary?: string }
   /**
-   * `status` is what tells a window's reset time apart from a limit that was
-   * actually hit, and it is optional because the engine's contract for it is
-   * undocumented: absent means unknown, never means fine.
+   * `status` tells a window's reset time apart from a limit actually hit. The
+   * engine does not document it, so absent means unknown, never fine.
    */
   | { t: "rate_limit"; rateLimitType: string; resetsAt: number; status?: string }
   /** The first 200 characters of a tool result; the runner's own `raw` never leaves it. */
@@ -175,14 +133,13 @@ export type JobEvent =
   | { t: "thinking"; text: string }
   /**
    * @deprecated a tool result and a thinking-only line arrive as `tool_result`
-   * and `thinking` now. Kept so a runner older than the release that stopped
-   * sending it is still on the wire, and the server keeps storing it.
+   * and `thinking` now; an older runner may still send this.
    */
   | { t: "other"; raw: unknown };
 
 export type JobEventParams = {
   jobId: string;
-  /** Monotonic per Job, so the server can detect loss and a reconnect can resume. */
+  /** Monotonic per Job. */
   seq: number;
   events: JobEvent[];
 };
@@ -209,7 +166,7 @@ export type JobSession = { id: string; turns: number; costUsd: number; durationM
 export type JobCompleteParams = {
   jobId: string;
   outcome: JobOutcome;
-  /** Filename to content. Returned as data; the server decides what it becomes. */
+  /** Filename to content. */
   artifacts: Record<string, string>;
   commits?: string[];
   session?: JobSession;
@@ -224,20 +181,13 @@ export type RunnerCalls = {
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
   "runner.ready": { params: ReadyParams; result: void };
   /**
-   * "I am still here", at `heartbeatSeconds`, and nothing else.
-   *
-   * Separate from `runner.ready` because that one declares capacity, and
-   * repeating it would re-grant a slot the Job in flight is using. Separate from
-   * `job.status` because an idle runner holds no Job.
+   * Sent every `heartbeatSeconds`, idle or not. Not a repeated `runner.ready`:
+   * the server reads each of those as capacity, and would re-grant a slot the
+   * Job in flight is using.
    */
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
   "runner.alive": { params: Record<string, never>; result: void };
-  /**
-   * protocol#3: sent as a notification by a runner with nothing to ask for,
-   * and as a request by one reading `result.grant` back - `RpcPeer#handleCall`
-   * answers either the same way, from the same handler, so a server needs no
-   * version check to support both at once.
-   */
+  /** A notification, or a request from a runner that wants `result.grant` back. */
   "job.status": { params: JobStatusParams; result: JobStatusResult };
   // biome-ignore lint/suspicious/noConfusingVoidType: a notification has no result
   "job.event": { params: JobEventParams; result: void };

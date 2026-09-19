@@ -1,11 +1,3 @@
-/**
- * JSON-RPC 2.0 framing, transport-agnostic.
- *
- * A peer turns method calls into frames and frames back into handler calls. It
- * never touches a socket: the caller supplies `send` and feeds it `receive`.
- * That is what lets the whole protocol be tested without opening a port.
- */
-
 export const PARSE_ERROR = -32700;
 export const INVALID_REQUEST = -32600;
 export const METHOD_NOT_FOUND = -32601;
@@ -26,7 +18,6 @@ export class RpcError extends Error {
 }
 
 export type MethodSpec = { params: unknown; result: unknown };
-/** A direction of the protocol: method name to its params and result. */
 export type MethodMap = Record<string, MethodSpec>;
 
 export type Handlers<In extends MethodMap> = {
@@ -41,10 +32,7 @@ export type RpcPeerOptions<In extends MethodMap> = {
 
 type Pending = { resolve: (value: never) => void; reject: (error: Error) => void };
 
-/**
- * `Out` is what this peer calls on the other side, `In` is what it answers.
- * Server and runner instantiate the same class with the two swapped.
- */
+/** `Out` is what this peer calls on the other side, `In` is what it answers. */
 export class RpcPeer<Out extends MethodMap, In extends MethodMap> {
   #send: (frame: string) => void;
   #handlers: Handlers<In>;
@@ -85,7 +73,6 @@ export class RpcPeer<Out extends MethodMap, In extends MethodMap> {
     this.#write({ jsonrpc: "2.0", method, params });
   }
 
-  /** Called by the transport for every inbound frame. Never throws. */
   receive(frame: string): void {
     let message: unknown;
     try {
@@ -97,7 +84,6 @@ export class RpcPeer<Out extends MethodMap, In extends MethodMap> {
     void this.#dispatch(message);
   }
 
-  /** Rejects everything in flight. Idempotent, so both close paths can call it. */
   close(reason: string): void {
     if (this.#closed) return;
     this.#closed = true;
